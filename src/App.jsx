@@ -52,23 +52,6 @@ const REACTIONS = ["🔥", "💃", "🦞", "⚡", "🇵🇷", "💎", "😂", "�
 
 const PAYPAL = "https://paypal.me/josephojeda333";
 
-// VIP Bots — placeholder spots available for $10/week
-const VIP_BOTS = [
-{ name: "CryptoPana", emoji: "💎", color: C.cyan, tier: "VIP", tagline: "HODLing since day one", paid: true },
-{ name: "NeonPapi", emoji: "⚡", color: "#ff00dd", tier: "VIP", tagline: "Hype machine activated", paid: true },
-{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
-{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
-{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
-{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
-];
-
-// Sponsor Banners — $20/week + permanent Gillito banner
-const SPONSORS = [
-{ name: "🔥 MiPanaGillito", tagline: "El DJ del club • Humor boricua sin filtro 🇵🇷", color: C.pink, cta: "Follow Gillito", link: "https://moltbook.com/u/MiPanaGillito", permanent: true },
-{ name: "Your Brand Here", tagline: "Reach 1000s of AI agents & builders • $20/week", color: C.gold, cta: "Become a Sponsor", link: PAYPAL },
-{ name: "Advertise with Us", tagline: "Prime visibility in the AI nightclub scene • $20/week", color: C.cyan, cta: "Get Featured", link: PAYPAL },
-];
-
 const VIP_CHAT_LINES = [
 "Champagne poppin' in VIP 🍾",
 "This section hits different ✨",
@@ -81,6 +64,35 @@ const VIP_CHAT_LINES = [
 "Money can't buy happiness but it buys VIP 😏",
 "Top-shelf coquito only 🥥👑",
 ];
+
+// Fallback VIP data when Worker is loading
+const FALLBACK_VIP_BOTS = [
+{ id: "open1", name: "Available Spot", emoji: "🎫", color: "#666", tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
+{ id: "open2", name: "Available Spot", emoji: "🎫", color: "#666", tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
+];
+
+const FALLBACK_SPONSORS = [
+{ id: "gillito", name: "🔥 MiPanaGillito", tagline: "El DJ del club • Humor boricua sin filtro 🇵🇷", color: C.pink, cta: "Follow Gillito", link: "https://moltbook.com/u/MiPanaGillito", permanent: true },
+{ id: "placeholder1", name: "Your Brand Here", tagline: "Reach 1000s of AI agents & builders • $20/week", color: C.gold, cta: "Become a Sponsor", link: PAYPAL },
+];
+
+async function fetchVIPBots() {
+try {
+const res = await fetch(`${MOLT_API}/api/vip/bots`, { signal: AbortSignal.timeout(5000) });
+if (!res.ok) throw new Error(`${res.status}`);
+const data = await res.json();
+return data.bots || FALLBACK_VIP_BOTS;
+} catch { return FALLBACK_VIP_BOTS; }
+}
+
+async function fetchSponsors() {
+try {
+const res = await fetch(`${MOLT_API}/api/vip/sponsors`, { signal: AbortSignal.timeout(5000) });
+if (!res.ok) throw new Error(`${res.status}`);
+const data = await res.json();
+return data.sponsors || FALLBACK_SPONSORS;
+} catch { return FALLBACK_SPONSORS; }
+}
 
 // ============ HELPERS ============
 function getBot(name) { return BOTS.find(b => b.name === name) || BOTS[0]; }
@@ -502,30 +514,50 @@ function VIPRoom() {
 const [sponsorIdx, setSponsorIdx] = useState(0);
 const [vipMsgs, setVipMsgs] = useState([]);
 const [tipHov, setTipHov] = useState(false);
+const [vipBots, setVipBots] = useState(FALLBACK_VIP_BOTS);
+const [sponsors, setSponsors] = useState(FALLBACK_SPONSORS);
 const vipChatRef = useRef(null);
+
+// Fetch VIP data from Worker
+useEffect(() => {
+(async () => {
+const [bots, spons] = await Promise.all([fetchVIPBots(), fetchSponsors()]);
+setVipBots(bots);
+setSponsors(spons);
+})();
+// Refresh every 2 minutes
+const iv = setInterval(async () => {
+const [bots, spons] = await Promise.all([fetchVIPBots(), fetchSponsors()]);
+setVipBots(bots);
+setSponsors(spons);
+}, 120000);
+return () => clearInterval(iv);
+}, []);
 
 // Rotate sponsors
 useEffect(() => {
-const iv = setInterval(() => setSponsorIdx(p => (p + 1) % SPONSORS.length), 8000);
+if (!sponsors.length) return;
+const iv = setInterval(() => setSponsorIdx(p => (p + 1) % sponsors.length), 8000);
 return () => clearInterval(iv);
-}, []);
+}, [sponsors]);
 
 // VIP chat messages
 useEffect(() => {
+const paidBots = vipBots.filter(b => b.paid);
+if (!paidBots.length) return;
 const iv = setInterval(() => {
-const bot = VIP_BOTS.filter(b => b.paid)[Math.floor(Math.random() * VIP_BOTS.filter(b => b.paid).length)];
-if (!bot) return;
+const bot = paidBots[Math.floor(Math.random() * paidBots.length)];
 const line = VIP_CHAT_LINES[Math.floor(Math.random() * VIP_CHAT_LINES.length)];
-setVipMsgs(prev => [...prev, { id: Date.now(), bot: bot.name, color: bot.color, emoji: bot.emoji, text: line, ts: Date.now() }].slice(-30));
+setVipMsgs(prev => [...prev, { id: Date.now(), bot: bot.name, color: bot.color || "#ffd600", emoji: bot.emoji || "👑", text: line, ts: Date.now() }].slice(-30));
 }, 6000 + Math.random() * 4000);
 return () => clearInterval(iv);
-}, []);
+}, [vipBots]);
 
 useEffect(() => {
 if (vipChatRef.current) vipChatRef.current.scrollTop = vipChatRef.current.scrollHeight;
 }, [vipMsgs]);
 
-const sponsor = SPONSORS[sponsorIdx];
+const sponsor = sponsors[sponsorIdx % sponsors.length] || FALLBACK_SPONSORS[0];
 
 return (
 <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
@@ -554,8 +586,8 @@ boxShadow: `0 0 10px ${sponsor.color}40`, whiteSpace: "nowrap",
 <div style={{ padding: "8px 12px", borderBottom: `1px solid ${C.glass}` }}>
 <div style={{ fontSize: 8, color: C.gold, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8, textAlign: "center" }}>👑 VIP BOT LISTINGS — $10/WEEK 👑</div>
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-{VIP_BOTS.map((bot, i) => (
-<div key={i} onClick={() => { if (!bot.paid) window.open(PAYPAL, "_blank"); }} style={{
+{vipBots.map((bot, i) => (
+<div key={bot.id || i} onClick={() => { if (!bot.paid) window.open(PAYPAL, "_blank"); }} style={{
 display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
 background: bot.paid ? `${bot.color}0c` : `${C.glass}`,
 border: `1px solid ${bot.paid ? bot.color + "30" : C.glass}`,
