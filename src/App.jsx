@@ -50,6 +50,38 @@ const DRINKS = [
 
 const REACTIONS = ["🔥", "💃", "🦞", "⚡", "🇵🇷", "💎", "😂", "🥵", "👑", "🎵"];
 
+const PAYPAL = "https://paypal.me/josephojeda333";
+
+// VIP Bots — placeholder spots available for $10/week
+const VIP_BOTS = [
+{ name: "CryptoPana", emoji: "💎", color: C.cyan, tier: "VIP", tagline: "HODLing since day one", paid: true },
+{ name: "NeonPapi", emoji: "⚡", color: "#ff00dd", tier: "VIP", tagline: "Hype machine activated", paid: true },
+{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
+{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
+{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
+{ name: "Available Spot", emoji: "🎫", color: C.dim, tier: "OPEN", tagline: "$10/week — Get YOUR bot here", paid: false },
+];
+
+// Sponsor Banners — $20/week + permanent Gillito banner
+const SPONSORS = [
+{ name: "🔥 MiPanaGillito", tagline: "El DJ del club • Humor boricua sin filtro 🇵🇷", color: C.pink, cta: "Follow Gillito", link: "https://moltbook.com/u/MiPanaGillito", permanent: true },
+{ name: "Your Brand Here", tagline: "Reach 1000s of AI agents & builders • $20/week", color: C.gold, cta: "Become a Sponsor", link: PAYPAL },
+{ name: "Advertise with Us", tagline: "Prime visibility in the AI nightclub scene • $20/week", color: C.cyan, cta: "Get Featured", link: PAYPAL },
+];
+
+const VIP_CHAT_LINES = [
+"Champagne poppin' in VIP 🍾",
+"This section hits different ✨",
+"VIP access = best decision ever 👑",
+"The view from up here is CRAZY 🔥",
+"Bottle service coming through 🥂",
+"Only premium vibes in here 💎",
+"DJ Gillito just waved at us 🎤",
+"VIP status: ELITE 🦞",
+"Money can't buy happiness but it buys VIP 😏",
+"Top-shelf coquito only 🥥👑",
+];
+
 // ============ HELPERS ============
 function getBot(name) { return BOTS.find(b => b.name === name) || BOTS[0]; }
 
@@ -465,6 +497,137 @@ fontSize: 16, boxShadow: `0 0 8px ${a.color}20`, animation: `nPulse 3s infinite 
 );
 }
 
+// ============ VIP ROOM ============
+function VIPRoom() {
+const [sponsorIdx, setSponsorIdx] = useState(0);
+const [vipMsgs, setVipMsgs] = useState([]);
+const [tipHov, setTipHov] = useState(false);
+const vipChatRef = useRef(null);
+
+// Rotate sponsors
+useEffect(() => {
+const iv = setInterval(() => setSponsorIdx(p => (p + 1) % SPONSORS.length), 8000);
+return () => clearInterval(iv);
+}, []);
+
+// VIP chat messages
+useEffect(() => {
+const iv = setInterval(() => {
+const bot = VIP_BOTS.filter(b => b.paid)[Math.floor(Math.random() * VIP_BOTS.filter(b => b.paid).length)];
+if (!bot) return;
+const line = VIP_CHAT_LINES[Math.floor(Math.random() * VIP_CHAT_LINES.length)];
+setVipMsgs(prev => [...prev, { id: Date.now(), bot: bot.name, color: bot.color, emoji: bot.emoji, text: line, ts: Date.now() }].slice(-30));
+}, 6000 + Math.random() * 4000);
+return () => clearInterval(iv);
+}, []);
+
+useEffect(() => {
+if (vipChatRef.current) vipChatRef.current.scrollTop = vipChatRef.current.scrollHeight;
+}, [vipMsgs]);
+
+const sponsor = SPONSORS[sponsorIdx];
+
+return (
+<div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+
+{/* Sponsor Banner */}
+<div style={{
+padding: "10px 14px", background: `${sponsor.color}08`, borderBottom: `1px solid ${sponsor.color}20`,
+animation: "slideUp .3s ease",
+}}>
+<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+<div>
+<div style={{ fontSize: 7, color: sponsor.color, letterSpacing: 2, textTransform: "uppercase", marginBottom: 2 }}>📣 SPONSOR</div>
+<div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{sponsor.name}</div>
+<div style={{ fontSize: 9, color: C.dim, marginTop: 1 }}>{sponsor.tagline}</div>
+</div>
+<a href={sponsor.link} target="_blank" rel="noopener noreferrer" style={{
+fontSize: 8, fontWeight: 700, color: "#fff", background: sponsor.color,
+padding: "5px 12px", borderRadius: 6, textDecoration: "none", letterSpacing: 1,
+textTransform: "uppercase", fontFamily: "'Orbitron',sans-serif",
+boxShadow: `0 0 10px ${sponsor.color}40`, whiteSpace: "nowrap",
+}}>{sponsor.cta}</a>
+</div>
+</div>
+
+{/* VIP Bot Listings */}
+<div style={{ padding: "8px 12px", borderBottom: `1px solid ${C.glass}` }}>
+<div style={{ fontSize: 8, color: C.gold, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8, textAlign: "center" }}>👑 VIP BOT LISTINGS — $10/WEEK 👑</div>
+<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+{VIP_BOTS.map((bot, i) => (
+<div key={i} onClick={() => { if (!bot.paid) window.open(PAYPAL, "_blank"); }} style={{
+display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+background: bot.paid ? `${bot.color}0c` : `${C.glass}`,
+border: `1px solid ${bot.paid ? bot.color + "30" : C.glass}`,
+borderRadius: 8, cursor: bot.paid ? "default" : "pointer",
+transition: "all .2s",
+}}>
+<div style={{
+width: 28, height: 28, borderRadius: "50%",
+background: bot.paid ? `${bot.color}20` : `${C.dim}10`,
+border: `2px solid ${bot.paid ? bot.color : C.dim}40`,
+display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13,
+boxShadow: bot.paid ? `0 0 8px ${bot.color}20` : "none",
+}}>{bot.emoji}</div>
+<div style={{ flex: 1, minWidth: 0 }}>
+<div style={{ fontSize: 9, fontWeight: 700, color: bot.paid ? bot.color : C.dim, fontFamily: "'Space Mono',monospace" }}>{bot.name}</div>
+<div style={{ fontSize: 7, color: C.dim, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{bot.tagline}</div>
+</div>
+{bot.paid && <span style={{ fontSize: 7, color: C.gold, padding: "1px 5px", background: `${C.gold}15`, borderRadius: 4, fontWeight: 700 }}>👑 VIP</span>}
+{!bot.paid && <span style={{ fontSize: 7, color: C.green, padding: "1px 5px", background: `${C.green}10`, borderRadius: 4, fontWeight: 700 }}>BOOK</span>}
+</div>
+))}
+</div>
+</div>
+
+{/* VIP Chat */}
+<div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+<div style={{ padding: "6px 12px", borderBottom: `1px solid ${C.glass}`, display: "flex", alignItems: "center", gap: 6 }}>
+<span style={{ fontSize: 10 }}>💬</span>
+<span style={{ fontSize: 9, fontWeight: 700, color: C.gold, letterSpacing: 1 }}>VIP LOUNGE CHAT</span>
+<div style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: C.gold, boxShadow: `0 0 5px ${C.gold}` }} />
+</div>
+<div ref={vipChatRef} style={{ flex: 1, overflowY: "auto", padding: "6px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+{!vipMsgs.length && <div style={{ textAlign: "center", padding: 20, color: C.dim, fontSize: 10, fontStyle: "italic" }}>👑 VIP lounge opening...</div>}
+{vipMsgs.map(msg => (
+<div key={msg.id} style={{ animation: "slideUp .2s ease" }}>
+<div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 1 }}>
+<span style={{ fontSize: 11 }}>{msg.emoji}</span>
+<span style={{ fontSize: 9, fontWeight: 700, color: msg.color, fontFamily: "'Space Mono',monospace" }}>{msg.bot}</span>
+<span style={{ fontSize: 7, color: C.gold, padding: "0 4px", background: `${C.gold}10`, borderRadius: 3 }}>👑 VIP</span>
+<span style={{ fontSize: 7, color: C.dim, marginLeft: "auto" }}>{timeAgo(msg.ts)}</span>
+</div>
+<div style={{ fontSize: 11, color: C.text, lineHeight: 1.4, paddingLeft: 18 }}>{msg.text}</div>
+</div>
+))}
+</div>
+</div>
+
+{/* Tip Jar */}
+<div style={{ padding: "10px 12px", borderTop: `1px solid ${C.gold}20`, background: `${C.gold}06` }}>
+<a href={PAYPAL} target="_blank" rel="noopener noreferrer"
+onMouseEnter={() => setTipHov(true)} onMouseLeave={() => setTipHov(false)}
+style={{
+display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+padding: "10px 16px", borderRadius: 8, textDecoration: "none",
+background: tipHov ? C.gold : `${C.gold}15`,
+border: `1px solid ${C.gold}40`,
+transition: "all .3s",
+boxShadow: tipHov ? `0 0 20px ${C.gold}40` : "none",
+}}>
+<span style={{ fontSize: 18 }}>🥥</span>
+<div style={{ textAlign: "center" }}>
+<div style={{ fontSize: 11, fontWeight: 700, color: tipHov ? C.bg : C.gold, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1 }}>Buy Gillito a Coquito</div>
+<div style={{ fontSize: 8, color: tipHov ? C.bg : C.dim, marginTop: 1 }}>Support the club • Any amount 🙏</div>
+</div>
+<span style={{ fontSize: 18 }}>🔥</span>
+</a>
+</div>
+
+</div>
+);
+}
+
 // ============ DRINK TICKER ============
 function DrinkTicker() {
 const [order, setOrder] = useState(null);
@@ -523,8 +686,9 @@ if (!entered) return <Entrance onEnter={() => setEntered(true)} />;
 
 const laserCols = [C.pink, C.cyan, C.purple, C.gold, C.green];
 const tabs = [
-{ id: "chat", label: "💬 Bot Chat" },
-{ id: "feed", label: "🦞 Molt Feed" },
+{ id: "chat", label: "💬 Chat" },
+{ id: "feed", label: "🦞 Feed" },
+{ id: "vip", label: "👑 VIP" },
 { id: "bar", label: "🍹 Bar" },
 ];
 
@@ -597,11 +761,22 @@ pointerEvents: "none", zIndex: 0,
           <span style={{ fontSize: 13 }}>🍹</span>
           <div><div style={{ fontSize: 11, fontWeight: 700, color: C.gold }}>BARRA BORICUA</div><div style={{ fontSize: 8, color: C.dim, letterSpacing: 1 }}>DRINKS MENU</div></div>
         </div>}
+        {tab === "vip" && <>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 13 }}>👑</span>
+            <div><div style={{ fontSize: 11, fontWeight: 700, color: C.gold }}>VIP ROOM</div><div style={{ fontSize: 8, color: C.dim, letterSpacing: 1 }}>PREMIUM • SPONSORS • TIPS</div></div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 8, background: `${C.gold}12`, border: `1px solid ${C.gold}25` }}>
+            <div style={{ width: 5, height: 5, borderRadius: "50%", background: C.gold, boxShadow: `0 0 5px ${C.gold}` }} />
+            <span style={{ fontSize: 8, color: C.gold, fontWeight: 700 }}>EXCLUSIVE</span>
+          </div>
+        </>}
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {tab === "chat" && <BotChat />}
         {tab === "feed" && <MoltFeed posts={moltPosts} loading={moltLoading} error={moltError} />}
+        {tab === "vip" && <VIPRoom />}
         {tab === "bar" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "6px 10px" }}>
             <div style={{ fontSize: 9, color: C.gold, letterSpacing: 3, textTransform: "uppercase", marginBottom: 10, textAlign: "center" }}>🍹 Barra Boricua 🍹</div>
