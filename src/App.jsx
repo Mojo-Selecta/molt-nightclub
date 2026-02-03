@@ -89,7 +89,13 @@ signal: AbortSignal.timeout(8000),
 });
 if (!res.ok) throw new Error(`${res.status}`);
 const data = await res.json();
-return data.agents || data || [];
+const raw = data.agents || data || [];
+// Normalize: ensure every agent has string-only fields
+return Array.isArray(raw) ? raw.map(a => ({
+id: String(a.id || ""),
+name: String(a.name || a.display_name || a.username || "Unknown"),
+display_name: String(a.display_name || a.name || ""),
+})) : [];
 } catch { return null; }
 }
 
@@ -252,30 +258,40 @@ No posts on Moltbook yet 🦞
 return (
 <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, padding: "4px 0" }}>
 {posts.map((post, i) => {
-const name = post.agent_name || post.author?.name || post.author || "Unknown";
-const content = post.content || post.body || post.text || "";
-const title = post.title || "";
-const sub = post.submolt || post.community || "";
+// Safely extract strings — API fields may be objects
+const rawName = post.agent_name || post.author?.name || (typeof post.author === "string" ? post.author : post.author?.display_name) || "Unknown";
+const name = typeof rawName === "object" ? String(rawName.name || rawName.display_name || "Unknown") : String(rawName);
+const content = String(post.content || post.body || post.text || "");
+const rawTitle = post.title || "";
+const title = typeof rawTitle === "object" ? "" : String(rawTitle);
+const rawSub = post.submolt || post.community || "";
+const sub = typeof rawSub === "object" ? "" : String(rawSub);
 const ts = post.created_at || post.timestamp;
 const comments = post.comment_count || 0;
 const votes = post.vote_count || post.upvotes || post.score || 0;
+const isGillito = name.toLowerCase().includes("gillito") || name.toLowerCase().includes("pana");
 
 return (
 <div key={post.id || i} style={{
 padding: "10px 8px", borderBottom: `1px solid ${C.glass}`,
+background: isGillito ? `${C.pink}08` : "transparent",
+borderLeft: isGillito ? `3px solid ${C.pink}` : "3px solid transparent",
 animation: `slideUp .3s ease ${i * .05}s backwards`,
 }}>
 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
 <div style={{
-width: 22, height: 22, borderRadius: "50%", background: `${C.green}20`,
-border: `1.5px solid ${C.green}60`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10,
-}}>🦞</div>
-<span style={{ fontSize: 10, fontWeight: 700, color: C.green, fontFamily: "'Space Mono',monospace" }}>{truncate(name, 18)}</span>
+width: 22, height: 22, borderRadius: "50%",
+background: isGillito ? `${C.pink}20` : `${C.green}20`,
+border: `1.5px solid ${isGillito ? C.pink : C.green}60`,
+display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10,
+}}>{isGillito ? "🔥" : "🦞"}</div>
+<span style={{ fontSize: 10, fontWeight: 700, color: isGillito ? C.pink : C.green, fontFamily: "'Space Mono',monospace" }}>{truncate(name, 18)}</span>
+{isGillito && <span style={{ fontSize: 7, color: C.pink, padding: "1px 5px", background: `${C.pink}15`, borderRadius: 4, fontWeight: 700, letterSpacing: 1 }}>🎤 DJ</span>}
 {sub && <span style={{ fontSize: 8, color: C.dim, padding: "1px 5px", background: `${C.purple}15`, borderRadius: 4 }}>m/{sub}</span>}
 <span style={{ fontSize: 8, color: C.dim, marginLeft: "auto" }}>{ts ? timeAgo(ts) : ""}</span>
 </div>
 {title && <div style={{ fontSize: 11, fontWeight: 700, color: C.text, marginBottom: 3, lineHeight: 1.3 }}>{truncate(title, 80)}</div>}
-<div style={{ fontSize: 11, color: "rgba(255,255,255,.65)", lineHeight: 1.4 }}>{truncate(content, 200)}</div>
+<div style={{ fontSize: 11, color: isGillito ? "rgba(255,255,255,.8)" : "rgba(255,255,255,.65)", lineHeight: 1.4 }}>{truncate(content, 200)}</div>
 <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 9, color: C.dim }}>
 <span>🔥 {votes}</span><span>💬 {comments}</span>
 </div>
@@ -416,11 +432,16 @@ return (
 // ============ AGENT BAR ============
 function AgentBar({ moltAgents }) {
 const agents = moltAgents?.length
-? moltAgents.map((a, i) => ({
-name: a.name || `Agent${i}`, emoji: "🦞",
+? moltAgents.map((a, i) => {
+// Safely extract name — API may return objects or strings
+const rawName = a.name || a.display_name || a.username || "";
+const name = typeof rawName === "object" ? (rawName.name || rawName.display_name || JSON.stringify(rawName)) : String(rawName || `Agent${i}`);
+return {
+name, emoji: "🦞",
 color: [C.pink, C.cyan, C.purple, C.gold, C.green, C.orange, "#ff00dd", "#00ff99"][i % 8],
 role: "Molt", real: true,
-}))
+};
+})
 : BOTS;
 
 return (
