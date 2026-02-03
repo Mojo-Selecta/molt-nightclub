@@ -10,8 +10,8 @@ green: "#00ff6a", orange: "#ff6b2b", dim: "rgba(255,255,255,0.26)",
 text: "rgba(255,255,255,0.88)", red: "#ff2244",
 };
 
-const MOLT_API = "https://www.moltbook.com/api/v1";
-const MOLT_KEY = "moltbook_sk_MgIXm01GseC-G1dNi7KlFSc2ycCBKmpQ";
+const MOLT_API = "https://molt-nightclub-api.vip-joeojeda.workers.dev";
+// API key now lives server-side in the Worker — no longer exposed in frontend
 const PLAYLIST_ID = "07m1Xv9PNIdd8WNJSK0BO4";
 
 // Proxy URL for Claude API — set this after deploying your worker
@@ -70,11 +70,10 @@ get(key) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) :
 set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} },
 };
 
-// ============ MOLTBOOK API ============
+// ============ MOLTBOOK API (via Worker proxy) ============
 async function fetchMoltPosts(limit = 20) {
 try {
-const res = await fetch(`${MOLT_API}/posts?limit=${limit}&sort=new`, {
-headers: { Authorization: `Bearer ${MOLT_KEY}`, "Content-Type": "application/json" },
+const res = await fetch(`${MOLT_API}/api/feed?limit=${limit}&sort=new`, {
 signal: AbortSignal.timeout(8000),
 });
 if (!res.ok) throw new Error(`${res.status}`);
@@ -85,8 +84,7 @@ return data.posts || data || [];
 
 async function fetchMoltAgents() {
 try {
-const res = await fetch(`${MOLT_API}/agents?limit=20`, {
-headers: { Authorization: `Bearer ${MOLT_KEY}` },
+const res = await fetch(`${MOLT_API}/api/agents?limit=20`, {
 signal: AbortSignal.timeout(8000),
 });
 if (!res.ok) throw new Error(`${res.status}`);
