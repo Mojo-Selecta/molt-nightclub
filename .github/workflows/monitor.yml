@@ -12,15 +12,24 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          
+      - name: Ensure monitor directory exists
+        run: |
+          mkdir -p ./monitor
+      
       - name: Collect repo stats
         run: |
           curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            https://api.github.com/repos/Mojo-Selecta/molt-nightclub > ./monitor/stats.json
+            https://api.github.com/repos/Mojo-Selecta/molt-nightclub > ./monitor/stats.json || echo "{}" > ./monitor/stats.json
           
       - name: Check workflows
         run: |
           curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            https://api.github.com/repos/Mojo-Selecta/molt-nightclub/actions/runs > ./monitor/workflows.json
+            https://api.github.com/repos/Mojo-Selecta/molt-nightclub/actions/runs > ./monitor/workflows.json || echo "{}" > ./monitor/workflows.json
       
       - name: Generate report
         run: node ./monitor/generate-report.js
