@@ -9,8 +9,12 @@ on:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Esto es clave para permitir el push
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -23,12 +27,12 @@ jobs:
       
       - name: Collect repo stats
         run: |
-          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/Mojo-Selecta/molt-nightclub > ./monitor/stats.json || echo "{}" > ./monitor/stats.json
           
       - name: Check workflows
         run: |
-          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             https://api.github.com/repos/Mojo-Selecta/molt-nightclub/actions/runs > ./monitor/workflows.json || echo "{}" > ./monitor/workflows.json
       
       - name: Generate report
@@ -36,8 +40,8 @@ jobs:
         
       - name: Commit changes
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
           git add ./monitor
           git commit -m "Update monitoring data" || echo "No changes"
           git push
