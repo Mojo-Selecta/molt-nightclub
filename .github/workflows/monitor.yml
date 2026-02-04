@@ -1,0 +1,34 @@
+name: Repo Monitor
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # cada 6 horas
+  workflow_dispatch:       # manual trigger
+  push:
+    branches: [ main ]
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Collect repo stats
+        run: |
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            https://api.github.com/repos/Mojo-Selecta/molt-nightclub > ./monitor/stats.json
+          
+      - name: Check workflows
+        run: |
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            https://api.github.com/repos/Mojo-Selecta/molt-nightclub/actions/runs > ./monitor/workflows.json
+      
+      - name: Generate report
+        run: node ./monitor/generate-report.js
+        
+      - name: Commit changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add ./monitor
+          git commit -m "Update monitoring data" || echo "No changes"
+          git push
